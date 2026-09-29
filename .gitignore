@@ -1,0 +1,17 @@
+node_modules/
+.env
+__pycache__/
+*.pyc
+venv/
+env/
+.pytest_cache/
+dist/
+build/
+backend/data/*.db
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!backend/data/.gitkeep
+ml/checkpoints/*.pt
+!ml/checkpoints/.gitkeep

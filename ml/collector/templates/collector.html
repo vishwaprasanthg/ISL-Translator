@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISL Dataset Collector</title>
+    <style>
+        :root {
+            --bg: #0f0f13;
+            --surface: #1a1a24;
+            --surface2: #232336;
+            --border: #2e2e44;
+            --text: #e8e8f0;
+            --text2: #9898b0;
+            --accent: #6366f1;
+            --accent2: #818cf8;
+            --green: #22c55e;
+            --green-bg: #0d3320;
+            --red: #ef4444;
+            --red-bg: #3b1111;
+            --yellow: #eab308;
+            --yellow-bg: #3d3000;
+            --blue: #3b82f6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent2);
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: var(--text2);
+        }
+
+        .header-stats .stat-value {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr 300px;
+            gap: 0;
+            height: calc(100vh - 52px);
+        }
+
+        /* === Left Panel: Controls === */
+        .left-panel {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .panel-section {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+        }
+
+        .panel-section h3 {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text2);
+            margin-bottom: 10px;
+        }
+
+        /* Mode Toggle */
+        .mode-toggle {
+            display: flex;
+            gap: 4px;
+            background: var(--bg);
+            border-radius: 6px;
+            padding: 3px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            background: transparent;
+            color: var(--text2);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* Current Class Display */
+        .current-class-display {
+            text-align: center;
+            padding: 16px 0;
+        }
+
+        .current-class-letter {
+            font-size: 72px;
+            font-weight: 800;
+            line-height: 1;
+            color: var(--accent2);
+            text-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .current-class-label {
+            font-size: 12px;
+            color: var(--text2);
+            margin-top: 4px;
+        }
+
+        /* Progress */
+        .progress-section {
+            text-align: center;
+        }
+
+        .progress-bar-container {
+            background: var(--bg);
+            border-radius: 6px;
+            height: 24px;
+            margin: 8px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--green));
+            border-radius: 6px;
+            transition: width 0.3s ease;
+            min-width: 0;
+        }
+
+        .progress-bar-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .progress-numbers {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .progress-stat {
+            text-align: center;
+        }
+
+        .progress-stat .value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .progress-stat .label {
+            font-size: 10px;
+            color: var(--text2);
+            text-transform: uppercase;
+        }
+
+        .progress-stat.valid .value { color: var(--green); }
+        .progress-stat.invalid .value { color: var(--red); }
+        .progress-stat.remaining .value { color: var(--yellow); }
+
+        /* Session */
+        .session-display {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .session-id {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--blue);
+        }
+
+        .session-count {
+            font-size: 12px;
+            color: var(--text2);
+        }
+
+        .btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-sm { padding: 5px 10px; font-size: 11px; }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        .btn-primary:hover { background: var(--accent2); }
+
+        .btn-success {
+            background: var(--green);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--red);
+            color: white;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text2);
+        }
+        .btn-outline:hover {
+            border-color: var(--accent);
+            color: var(--text);
+        }
+
+        /* Main Action Button */
+        .action-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .action-btn.ready {
+            background: linear-gradient(135deg, var(--green), #16a34a);
+            color: white;
+        }
+
+        .action-btn.capturing {
+            background: linear-gradient(135deg, var(--red), #dc2626);
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        .action-btn.complete {
+            background: var(--surface2);
+            color: var(--green);
+            border: 2px solid var(--green);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        /* Nav Buttons */
+        .nav-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        .nav-buttons .btn { flex: 1; }
+
+        /* Status indicators */
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 12px;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .status-dot.green { background: var(--green); }
+        .status-dot.red { background: var(--red); }
+        .status-dot.yellow { background: var(--yellow); }
+
+        /* === Center Panel: Webcam === */
+        .center-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            position: relative;
+            background: var(--bg);
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 720px;
+            aspect-ratio: 4/3;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid var(--border);
+        }
+
+        .video-container.capturing {
+            border-color: var(--green);
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
+        }
+
+        #webcamVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        #landmarkCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+        }
+
+        .capture-indicator {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0,0,0,0.7);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .capture-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--red);
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .variation-prompt {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: var(--yellow);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: opacity 0.3s;
+        }
+
+        .no-camera-msg {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text2);
+            gap: 12px;
+        }
+
+        .no-camera-msg svg {
+            width: 48px;
+            height: 48px;
+            opacity: 0.5;
+        }
+
+        /* === Right Panel: Class Grid === */
+        .right-panel {
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .class-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+        }
+
+        .class-cell {
+            position: relative;
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+            background: var(--surface2);
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .class-cell:hover {
+            border-color: var(--accent);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .class-cell.active {
+            border-color: var(--accent);
+            background: rgba(99, 102, 241, 0.2);
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+        }
+
+        .class-cell.complete {
+            border-color: var(--green);
+            background: var(--green-bg);
+        }
+
+        .class-cell.complete::after {
+            content: '✓';
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 10px;
+            color: var(--green);
+        }
+
+        .class-cell .cell-count {
+            font-size: 9px;
+            color: var(--text2);
+            margin-top: 2px;
+        }
+
+        .class-cell.complete .cell-count {
+            color: var(--green);
+        }
+
+        /* Keyboard hints */
+        .keyboard-hints {
+            font-size: 11px;
+            color: var(--text2);
+            line-height: 1.8;
+        }
+
+        .keyboard-hints kbd {
+            display: inline-block;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 1px 6px;
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--text);
+        }
+
+        /* Confirmation dialog */
+        .dialog-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dialog-overlay.visible {
+            display: flex;
+        }
+
+        .dialog-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .dialog-box h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .dialog-box p {
+            font-size: 13px;
+            color: var(--text2);
+            margin-bottom: 16px;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .dialog-buttons .btn {
+            min-width: 100px;
+        }
+
+        /* Overall progress bar */
+        .overall-progress {
+            font-size: 12px;
+        }
+
+        .overall-progress .label-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            color: var(--text2);
+        }
+
+        .mini-progress {
+            background: var(--bg);
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .mini-progress-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🤟 ISL Dataset Collector</h1>
+    <div class="header-stats">
+        <span>MediaPipe: <span class="stat-value" id="mpStatus">Loading...</span></span>
+        <span>Hands: <span class="stat-value" id="handCount">0</span></span>
+        <span>FPS: <span class="stat-value" id="fpsDisplay">--</span></span>
+        <span>Rate: <span class="stat-value" id="captureRate">0</span> smp/s</span>
+    </div>
+</div>
+
+<div class="main-layout">
+    <!-- Left Panel: Controls -->
+    <div class="left-panel">
+        <!-- Mode Toggle -->
+        <div class="panel-section">
+            <h3>Collection Mode</h3>
+            <div class="mode-toggle">
+                <button class="mode-btn active" id="modeAlphabet" onclick="setMode('alphabet')">Alphabet (A-Z)</button>
+                <button class="mode-btn" id="modeNumbers" onclick="setMode('numbers')">Numbers (1-9)</button>
+            </div>
+        </div>
+
+        <!-- Current Class -->
+        <div class="panel-section">
+            <h3>Current Class</h3>
+            <div class="current-class-display">
+                <div class="current-class-letter" id="currentClassLetter">A</div>
+                <div class="current-class-label" id="currentClassLabel">Collecting: A</div>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="panel-section progress-section">
+            <h3>Progress</h3>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressFill" style="width: 0%"></div>
+                <div class="progress-bar-text" id="progressText">0 / 500</div>
+            </div>
+            <div class="progress-numbers">
+                <div class="progress-stat valid">
+                    <div class="value" id="validCount">0</div>
+                    <div class="label">Valid</div>
+                </div>
+                <div class="progress-stat invalid">
+                    <div class="value" id="invalidCount">0</div>
+                    <div class="label">Invalid</div>
+                </div>
+                <div class="progress-stat remaining">
+                    <div class="value" id="remainingCount">500</div>
+                    <div class="label">Remaining</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Session -->
+        <div class="panel-section">
+            <h3>Session</h3>
+            <div class="session-display">
+                <span class="session-id" id="sessionId">session_001</span>
+                <span class="session-count" id="sessionSamples">0 samples</span>
+            </div>
+            <div style="margin-top: 8px;">
+                <button class="btn btn-outline btn-sm" onclick="newSession()">New Session</button>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="panel-section">
+            <h3>Status</h3>
+            <div class="status-row">
+                <span><span class="status-dot" id="cameraDot"></span>Camera</span>
+                <span id="cameraStatus">Off</span>
+            </div>
+            <div class="status-row">
+                <span><span class="status-dot" id="mpDot"></span>MediaPipe</span>
+                <span id="mpStatusDetail">Not ready</span>
+            </div>
+            <div class="status-row">
+                <span><span class="status-dot" id="handDot"></span>Hand</span>
+                <span id="handStatus">Not detected</span>
+            </div>
+        </div>
+
+        <!-- Main Action -->
+        <button class="action-btn ready" id="actionBtn" onclick="toggleCapture()">
+            ▶ Start Camera
+        </button>
+
+        <!-- Navigation -->
+        <div class="nav-buttons">
+            <button class="btn btn-outline" onclick="prevClass()">◀ Prev (P)</button>
+            <button class="btn btn-outline" onclick="nextClass()">Next (N) ▶</button>
+        </div>
+        <div class="nav-buttons">
+            <button class="btn btn-danger btn-sm" onclick="confirmResetClass()">Reset Class (R)</button>
+        </div>
+
+        <!-- Keyboard Hints -->
+        <div class="panel-section keyboard-hints">
+            <h3>Keyboard Shortcuts</h3>
+            <kbd>Space</kbd> Start / Pause capture<br>
+            <kbd>N</kbd> Next class<br>
+            <kbd>P</kbd> Previous class<br>
+            <kbd>R</kbd> Reset current class<br>
+        </div>
+    </div>
+
+    <!-- Center Panel: Webcam -->
+    <div class="center-panel">
+        <div class="video-container" id="videoContainer">
+            <video id="webcamVideo" autoplay playsinline muted></video>
+            <canvas id="landmarkCanvas"></canvas>
+
+            <div class="capture-indicator" id="captureIndicator" style="display: none;">
+                <div class="capture-dot"></div>
+                <span>CAPTURING</span>
+            </div>
+
+            <div class="variation-prompt" id="variationPrompt" style="opacity: 0;">
+                Move your hand slightly
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel: Class Grid -->
+    <div class="right-panel">
+        <div class="panel-section">
+            <h3>Overall Progress</h3>
+            <div class="overall-progress">
+                <div class="label-row">
+                    <span id="overallLabel">Alphabet</span>
+                    <span id="overallPercent">0%</span>
+                </div>
+                <div class="mini-progress">
+                    <div class="mini-progress-fill" id="overallFill" style="width: 0%"></div>
+                </div>
+                <div style="margin-top: 4px; color: var(--text2); font-size: 11px;">
+                    <span id="overallCompleted">0</span> / <span id="overallTotal">26</span> classes complete
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-section" style="flex: 1;">
+            <h3>Classes</h3>
+            <div class="class-grid" id="classGrid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Dialog -->
+<div class="dialog-overlay" id="dialogOverlay">
+    <div class="dialog-box">
+        <h3 id="dialogTitle">Confirm</h3>
+        <p id="dialogMessage">Are you sure?</p>
+        <div class="dialog-buttons">
+            <button class="btn btn-outline" onclick="closeDialog()">Cancel</button>
+            <button class="btn btn-danger" id="dialogConfirmBtn" onclick="dialogConfirmAction()">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- MediaPipe Tasks Vision -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs" type="module"></script>
+
+<script type="module">
+    import { FilesetResolver, HandLandmarker, DrawingUtils } from
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs";
+
+    // ============================================================
+    // Constants — matching frontend/src/services/landmarkProcessor.js
+    // ============================================================
+
+    const NUM_LANDMARKS_PER_HAND = 21;
+    const COORDINATES_PER_LANDMARK = 3;
+    const FEATURES_PER_HAND = NUM_LANDMARKS_PER_HAND * COORDINATES_PER_LANDMARK; // 63
+    const TOTAL_FEATURES = FEATURES_PER_HAND * 2; // 126
+    const EPSILON = 1e-6;
+    const TARGET_PER_CLASS = 500;
+
+    const ALPHABET_CLASSES = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    const NUMBER_CLASSES = '123456789'.split('');
+
+    const VARIATION_PROMPTS = [
+        "Move hand slightly left",
+        "Move hand slightly right",
+        "Move closer to camera",
+        "Move farther from camera",
+        "Tilt hand slightly",
+        "Move hand slightly up",
+        "Move hand slightly down",
+        "Change wrist angle slightly",
+        "Relax and repeat the sign",
+        "Rotate hand slightly",
+        "Change distance from camera",
+        "Move hand to center",
+    ];
+
+    // ============================================================
+    // State
+    // ============================================================
+
+    let currentMode = 'alphabet';
+    let currentClassIndex = 0;
+    let currentSessionId = 'session_001';
+    let isCapturing = false;
+    let cameraStarted = false;
+
+    let validCount = 0;
+    let invalidCount = 0;
+    let sessionSampleCount = 0;
+
+    // Progress cache: { alphabet: { A: { total, complete, sessions }, ... }, numbers: { ... } }
+    let progressCache = { alphabet: {}, numbers: {} };
+
+    // MediaPipe
+    let handLandmarker = null;
+    let mpReady = false;
+
+    // Capture control
+    let lastCaptureTime = 0;
+    const CAPTURE_INTERVAL_MS = 130; // ~7.7 samples/sec
+    let capturedSincePrompt = 0;
+    let lastPromptTime = 0;
+    const PROMPT_INTERVAL_SAMPLES = 50; // Show variation prompt every 50 samples
+
+    // Batch buffer
+    let batchBuffer = [];
+    const BATCH_SIZE = 10;
+    let batchFlushTimer = null;
+
+    // FPS tracking
+    let fpsFrameCount = 0;
+    let fpsLastTime = performance.now();
+
+    // Capture rate tracking
+    let captureRateCount = 0;
+    let captureRateLastTime = performance.now();
+
+    // Animation
+    let animFrameId = null;
+
+    // Dialog
+    let dialogCallback = null;
+
+    // ============================================================
+    // Normalization — EXACT PORT of landmarkProcessor.js
+    // ============================================================
+
+    function normalizeHandLandmarks(landmarks) {
+        if (!landmarks || landmarks.length !== NUM_LANDMARKS_PER_HAND) {
+            return new Array(FEATURES_PER_HAND).fill(0);
+        }
+
+        const wrist = landmarks[0];
+        const middleMCP = landmarks[9];
+
+        const dx = middleMCP.x - wrist.x;
+        const dy = middleMCP.y - wrist.y;
+        const dz = middleMCP.z - wrist.z;
+        let scale = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (scale < EPSILON) {
+            scale = 1.0;
+        }
+
+        const normalized = new Float32Array(FEATURES_PER_HAND);
+        let idx = 0;
+
+        for (let i = 0; i < NUM_LANDMARKS_PER_HAND; i++) {
+            const lm = landmarks[i];
+            normalized[idx++] = (lm.x - wrist.x) / scale;
+            normalized[idx++] = (lm.y - wrist.y) / scale;
+            normalized[idx++] = (lm.z - wrist.z) / scale;
+        }
+
+        return Array.from(normalized);
+    }
+
+    function processLandmarks(results) {
+        const featureVector = new Float32Array(TOTAL_FEATURES);
+        featureVector.fill(0);
+
+        if (!results || !results.landmarks || results.landmarks.length === 0) {
+            return null; // No hand detected — return null, not zeros
+        }
+
+        let leftHandLandmarks = null;
+        let rightHandLandmarks = null;
+
+        for (let i = 0; i < results.landmarks.length; i++) {
+            const handedness = results.handednesses[i][0].categoryName;
+            if (handedness === 'Left' && !leftHandLandmarks) {
+                leftHandLandmarks = results.landmarks[i];
+            } else if (handedness === 'Right' && !rightHandLandmarks) {
+                rightHandLandmarks = results.landmarks[i];
+            }
+        }
+
+        // Normalize and insert left hand (indices 0 to 62)
+        if (leftHandLandmarks) {
+            const leftNormalized = normalizeHandLandmarks(leftHandLandmarks);
+            featureVector.set(leftNormalized, 0);
+        }
+
+        // Normalize and insert right hand (indices 63 to 125)
+        if (rightHandLandmarks) {
+            const rightNormalized = normalizeHandLandmarks(rightHandLandmarks);
+            featureVector.set(rightNormalized, FEATURES_PER_HAND);
+        }
+
+        // Validate
+        const arr = Array.from(featureVector);
+
+        // Check all zeros
+        if (arr.every(v => v === 0)) return null;
+
+        // Check NaN / Infinity
+        if (!arr.every(v => Number.isFinite(v))) return null;
+
+        return arr;
+    }
+
+    // ============================================================
+    // MediaPipe Initialization
+    // ============================================================
+
+    async function initMediaPipe() {
+        updateMPStatus('Loading...', 'yellow');
+
+        try {
+            const vision = await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+            );
+
+            let delegate = "GPU";
+            try {
+                handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+                        delegate: "GPU"
+                    },
+                    runningMode: "VIDEO",
+                    numHands: 2,
+                    minHandDetectionConfidence: 0.5,
+                    minHandPresenceConfidence: 0.5,
+                    minTrackingConfidence: 0.5,
+                });
+            } catch (e) {
+                console.warn("GPU failed, falling back to CPU:", e);
+                delegate = "CPU";
+                handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+                        delegate: "CPU"
+                    },
+                    runningMode: "VIDEO",
+                    numHands: 2,
+                    minHandDetectionConfidence: 0.5,
+                    minHandPresenceConfidence: 0.5,
+                    minTrackingConfidence: 0.5,
+                });
+            }
+
+            mpReady = true;
+            updateMPStatus(`Ready (${delegate})`, 'green');
+            document.getElementById('mpDot').classList.add('green');
+            document.getElementById('mpStatusDetail').textContent = `Ready (${delegate})`;
+
+        } catch (err) {
+            console.error("MediaPipe init failed:", err);
+            updateMPStatus('Failed', 'red');
+            document.getElementById('mpDot').classList.add('red');
+            document.getElementById('mpStatusDetail').textContent = 'Failed';
+        }
+    }
+
+    function updateMPStatus(text, color) {
+        const el = document.getElementById('mpStatus');
+        el.textContent = text;
+        el.style.color = color === 'green' ? 'var(--green)' :
+                         color === 'red' ? 'var(--red)' : 'var(--yellow)';
+    }
+
+    // ============================================================
+    // Camera
+    // ============================================================
+
+    async function startCamera() {
+        const video = document.getElementById('webcamVideo');
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
+            });
+            video.srcObject = stream;
+            await video.play();
+
+            cameraStarted = true;
+            document.getElementById('cameraDot').classList.add('green');
+            document.getElementById('cameraStatus').textContent = 'Active';
+
+            // Set canvas dimensions
+            const canvas = document.getElementById('landmarkCanvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Start detection loop
+            startDetectionLoop();
+
+            // Update button
+            updateActionButton();
+
+        } catch (err) {
+            console.error("Camera error:", err);
+            document.getElementById('cameraDot').classList.add('red');
+            document.getElementById('cameraStatus').textContent = 'Error';
+        }
+    }
+
+    // ============================================================
+    // Detection Loop
+    // ============================================================
+
+    function startDetectionLoop() {
+        const video = document.getElementById('webcamVideo');
+        const canvas = document.getElementById('landmarkCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function loop() {
+            if (!cameraStarted || !mpReady || !handLandmarker) {
+                animFrameId = requestAnimationFrame(loop);
+                return;
+            }
+
+            if (video.readyState >= 2 && video.videoWidth > 0) {
+                // Ensure canvas matches video
+                if (canvas.width !== video.videoWidth) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                }
+
+                const startTimeMs = performance.now();
+                const results = handLandmarker.detectForVideo(video, startTimeMs);
+
+                // Draw landmarks
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawLandmarks(ctx, results, canvas.width, canvas.height);
+
+                // Update hand count
+                const handCount = results.landmarks ? results.landmarks.length : 0;
+                document.getElementById('handCount').textContent = handCount;
+                document.getElementById('handStatus').textContent =
+                    handCount > 0 ? `${handCount} detected` : 'Not detected';
+
+                const handDot = document.getElementById('handDot');
+                handDot.className = 'status-dot ' + (handCount > 0 ? 'green' : 'red');
+
+                // Capture if active
+                if (isCapturing && handCount > 0) {
+                    const now = performance.now();
+                    if (now - lastCaptureTime >= CAPTURE_INTERVAL_MS) {
+                        lastCaptureTime = now;
+                        captureSample(results);
+                    }
+                }
+
+                // FPS
+                fpsFrameCount++;
+                if (startTimeMs - fpsLastTime >= 1000) {
+                    const fps = Math.round(fpsFrameCount * 1000 / (startTimeMs - fpsLastTime));
+                    document.getElementById('fpsDisplay').textContent = fps;
+                    fpsFrameCount = 0;
+                    fpsLastTime = startTimeMs;
+                }
+
+                // Capture rate
+                if (startTimeMs - captureRateLastTime >= 1000) {
+                    document.getElementById('captureRate').textContent = captureRateCount;
+                    captureRateCount = 0;
+                    captureRateLastTime = startTimeMs;
+                }
+            }
+
+            animFrameId = requestAnimationFrame(loop);
+        }
+
+        animFrameId = requestAnimationFrame(loop);
+    }
+
+    // ============================================================
+    // Drawing
+    // ============================================================
+
+    const HAND_CONNECTIONS = [
+        [0,1],[1,2],[2,3],[3,4],
+        [0,5],[5,6],[6,7],[7,8],
+        [0,9],[9,10],[10,11],[11,12],
+        [0,13],[13,14],[14,15],[15,16],
+        [0,17],[17,18],[18,19],[19,20],
+        [5,9],[9,13],[13,17]
+    ];
+
+    function drawLandmarks(ctx, results, w, h) {
+        if (!results.landmarks) return;
+
+        for (let handIdx = 0; handIdx < results.landmarks.length; handIdx++) {
+            const landmarks = results.landmarks[handIdx];
+            const handedness = results.handednesses[handIdx][0].categoryName;
+            const color = handedness === 'Left' ? '#00ff88' : '#ff6644';
+
+            // Draw connections
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            for (const [start, end] of HAND_CONNECTIONS) {
+                const s = landmarks[start];
+                const e = landmarks[end];
+                ctx.beginPath();
+                ctx.moveTo(s.x * w, s.y * h);
+                ctx.lineTo(e.x * w, e.y * h);
+                ctx.stroke();
+            }
+
+            // Draw points
+            ctx.fillStyle = color;
+            for (const lm of landmarks) {
+                ctx.beginPath();
+                ctx.arc(lm.x * w, lm.y * h, 3, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+    }
+
+    // ============================================================
+    // Capture
+    // ============================================================
+
+    function captureSample(results) {
+        const features = processLandmarks(results);
+
+        if (features === null) {
+            invalidCount++;
+            updateProgressUI();
+            return;
+        }
+
+        // Add to batch buffer
+        batchBuffer.push(features);
+        captureRateCount++;
+
+        // Variation prompts
+        capturedSincePrompt++;
+        if (capturedSincePrompt >= PROMPT_INTERVAL_SAMPLES) {
+            capturedSincePrompt = 0;
+            showVariationPrompt();
+        }
+
+        // Flush batch if full
+        if (batchBuffer.length >= BATCH_SIZE) {
+            flushBatch();
+        } else if (!batchFlushTimer) {
+            // Flush after 500ms even if batch isn't full
+            batchFlushTimer = setTimeout(() => flushBatch(), 500);
+        }
+    }
+
+    async function flushBatch() {
+        if (batchFlushTimer) {
+            clearTimeout(batchFlushTimer);
+            batchFlushTimer = null;
+        }
+
+        if (batchBuffer.length === 0) return;
+
+        const samples = [...batchBuffer];
+        batchBuffer = [];
+
+        const className = getCurrentClass();
+
+        try {
+            const resp = await fetch('/api/save_batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mode: currentMode,
+                    class_name: className,
+                    session_id: currentSessionId,
+                    samples: samples,
+                }),
+            });
+
+            const data = await resp.json();
+
+            if (data.saved > 0) {
+                validCount = data.total_samples;
+                sessionSampleCount = data.session_samples;
+                invalidCount += data.invalid;
+                updateProgressUI();
+
+                // Update progress cache
+                if (!progressCache[currentMode][className]) {
+                    progressCache[currentMode][className] = { total: 0, complete: false };
+                }
+                progressCache[currentMode][className].total = data.total_samples;
+                progressCache[currentMode][className].complete = data.complete;
+                updateClassGrid();
+                updateOverallProgress();
+
+                // Auto-pause if complete
+                if (data.complete) {
+                    pauseCapture();
+                    updateActionButton();
+                }
+            } else if (data.invalid > 0) {
+                invalidCount += data.invalid;
+                updateProgressUI();
+            }
+        } catch (err) {
+            console.error("Save batch failed:", err);
+            // Put samples back
+            batchBuffer.unshift(...samples);
+        }
+    }
+
+    // ============================================================
+    // Variation Prompts
+    // ============================================================
+
+    function showVariationPrompt() {
+        const el = document.getElementById('variationPrompt');
+        const prompt = VARIATION_PROMPTS[Math.floor(Math.random() * VARIATION_PROMPTS.length)];
+        el.textContent = prompt;
+        el.style.opacity = '1';
+        setTimeout(() => { el.style.opacity = '0'; }, 3000);
+    }
+
+    // ============================================================
+    // UI Updates
+    // ============================================================
+
+    function getCurrentClasses() {
+        return currentMode === 'alphabet' ? ALPHABET_CLASSES : NUMBER_CLASSES;
+    }
+
+    function getCurrentClass() {
+        return getCurrentClasses()[currentClassIndex];
+    }
+
+    function updateProgressUI() {
+        const remaining = Math.max(0, TARGET_PER_CLASS - validCount);
+        const pct = Math.min(100, (validCount / TARGET_PER_CLASS) * 100);
+
+        document.getElementById('validCount').textContent = validCount;
+        document.getElementById('invalidCount').textContent = invalidCount;
+        document.getElementById('remainingCount').textContent = remaining;
+        document.getElementById('progressFill').style.width = pct + '%';
+        document.getElementById('progressText').textContent = `${validCount} / ${TARGET_PER_CLASS}`;
+        document.getElementById('sessionSamples').textContent = `${sessionSampleCount} samples`;
+    }
+
+    function updateCurrentClassUI() {
+        const cls = getCurrentClass();
+        document.getElementById('currentClassLetter').textContent = cls;
+        document.getElementById('currentClassLabel').textContent = `Collecting: ${cls}`;
+
+        // Load class progress
+        loadClassProgress(currentMode, cls);
+    }
+
+    async function loadClassProgress(mode, className) {
+        try {
+            const resp = await fetch(`/api/progress/${mode}/${className}`);
+            const data = await resp.json();
+
+            validCount = data.total;
+            invalidCount = 0;
+            currentSessionId = data.current_session;
+            sessionSampleCount = data.sessions[currentSessionId] || 0;
+
+            document.getElementById('sessionId').textContent = currentSessionId;
+            updateProgressUI();
+        } catch (err) {
+            console.error("Load progress failed:", err);
+        }
+    }
+
+    function updateActionButton() {
+        const btn = document.getElementById('actionBtn');
+        const isComplete = validCount >= TARGET_PER_CLASS;
+
+        if (!cameraStarted) {
+            btn.className = 'action-btn ready';
+            btn.textContent = '▶ Start Camera';
+        } else if (isComplete) {
+            btn.className = 'action-btn complete';
+            btn.textContent = '✓ COMPLETE — Move to Next Class';
+        } else if (isCapturing) {
+            btn.className = 'action-btn capturing';
+            btn.textContent = '⏸ Pause (Space)';
+        } else {
+            btn.className = 'action-btn ready';
+            btn.textContent = '▶ Start Capture (Space)';
+        }
+    }
+
+    function buildClassGrid() {
+        const grid = document.getElementById('classGrid');
+        grid.innerHTML = '';
+
+        const classes = getCurrentClasses();
+        for (let i = 0; i < classes.length; i++) {
+            const cls = classes[i];
+            const cell = document.createElement('div');
+            cell.className = 'class-cell';
+            cell.id = `cell-${cls}`;
+            cell.innerHTML = `<span>${cls}</span><span class="cell-count" id="count-${cls}">0</span>`;
+            cell.onclick = () => selectClass(i);
+            grid.appendChild(cell);
+        }
+
+        // Highlight active
+        updateClassGridHighlight();
+    }
+
+    function updateClassGrid() {
+        const classes = getCurrentClasses();
+        for (const cls of classes) {
+            const cell = document.getElementById(`cell-${cls}`);
+            const countEl = document.getElementById(`count-${cls}`);
+            if (!cell || !countEl) continue;
+
+            const info = progressCache[currentMode][cls] || { total: 0, complete: false };
+            countEl.textContent = info.total;
+
+            cell.classList.toggle('complete', info.complete);
+        }
+        updateClassGridHighlight();
+    }
+
+    function updateClassGridHighlight() {
+        const classes = getCurrentClasses();
+        for (let i = 0; i < classes.length; i++) {
+            const cell = document.getElementById(`cell-${classes[i]}`);
+            if (cell) cell.classList.toggle('active', i === currentClassIndex);
+        }
+    }
+
+    function updateOverallProgress() {
+        const classes = getCurrentClasses();
+        let completed = 0;
+        for (const cls of classes) {
+            const info = progressCache[currentMode][cls] || { total: 0, complete: false };
+            if (info.complete) completed++;
+        }
+
+        const pct = Math.round((completed / classes.length) * 100);
+        document.getElementById('overallLabel').textContent =
+            currentMode === 'alphabet' ? 'Alphabet' : 'Numbers';
+        document.getElementById('overallPercent').textContent = pct + '%';
+        document.getElementById('overallFill').style.width = pct + '%';
+        document.getElementById('overallCompleted').textContent = completed;
+        document.getElementById('overallTotal').textContent = classes.length;
+    }
+
+    // ============================================================
+    // Actions
+    // ============================================================
+
+    window.toggleCapture = function() {
+        if (!cameraStarted) {
+            startCamera();
+            return;
+        }
+
+        if (validCount >= TARGET_PER_CLASS) {
+            nextClass();
+            return;
+        }
+
+        if (isCapturing) {
+            pauseCapture();
+        } else {
+            startCapture();
+        }
+    }
+
+    function startCapture() {
+        isCapturing = true;
+        capturedSincePrompt = 0;
+        document.getElementById('captureIndicator').style.display = 'flex';
+        document.getElementById('videoContainer').classList.add('capturing');
+        updateActionButton();
+    }
+
+    function pauseCapture() {
+        isCapturing = false;
+        flushBatch(); // Flush any remaining samples
+        document.getElementById('captureIndicator').style.display = 'none';
+        document.getElementById('videoContainer').classList.remove('capturing');
+        updateActionButton();
+    }
+
+    window.setMode = function(mode) {
+        if (isCapturing) pauseCapture();
+
+        currentMode = mode;
+        currentClassIndex = 0;
+
+        document.getElementById('modeAlphabet').classList.toggle('active', mode === 'alphabet');
+        document.getElementById('modeNumbers').classList.toggle('active', mode === 'numbers');
+
+        buildClassGrid();
+        loadAllProgress();
+        updateCurrentClassUI();
+        updateActionButton();
+    }
+
+    function selectClass(index) {
+        if (isCapturing) {
+            showDialog(
+                'Switch Class?',
+                `You are currently capturing. Pause and switch to ${getCurrentClasses()[index]}?`,
+                () => {
+                    pauseCapture();
+                    currentClassIndex = index;
+                    updateCurrentClassUI();
+                    updateClassGridHighlight();
+                    updateActionButton();
+                }
+            );
+        } else {
+            currentClassIndex = index;
+            updateCurrentClassUI();
+            updateClassGridHighlight();
+            updateActionButton();
+        }
+    }
+
+    window.nextClass = function() {
+        const classes = getCurrentClasses();
+        if (isCapturing) pauseCapture();
+
+        if (currentClassIndex < classes.length - 1) {
+            currentClassIndex++;
+            updateCurrentClassUI();
+            updateClassGridHighlight();
+            updateActionButton();
+        }
+    }
+
+    window.prevClass = function() {
+        if (isCapturing) pauseCapture();
+
+        if (currentClassIndex > 0) {
+            currentClassIndex--;
+            updateCurrentClassUI();
+            updateClassGridHighlight();
+            updateActionButton();
+        }
+    }
+
+    window.confirmResetClass = function() {
+        const cls = getCurrentClass();
+        showDialog(
+            `Reset ${cls}?`,
+            `This will DELETE all collected samples for class "${cls}" in ${currentMode} mode. This cannot be undone.`,
+            async () => {
+                try {
+                    await fetch('/api/reset_class', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            mode: currentMode,
+                            class_name: cls,
+                            confirm: true,
+                        }),
+                    });
+
+                    if (progressCache[currentMode][cls]) {
+                        progressCache[currentMode][cls] = { total: 0, complete: false };
+                    }
+
+                    validCount = 0;
+                    invalidCount = 0;
+                    sessionSampleCount = 0;
+                    currentSessionId = 'session_001';
+                    document.getElementById('sessionId').textContent = currentSessionId;
+                    updateProgressUI();
+                    updateClassGrid();
+                    updateOverallProgress();
+                    updateActionButton();
+                } catch (err) {
+                    console.error("Reset failed:", err);
+                }
+            }
+        );
+    }
+
+    window.newSession = async function() {
+        if (isCapturing) pauseCapture();
+
+        const cls = getCurrentClass();
+        try {
+            const resp = await fetch('/api/new_session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mode: currentMode,
+                    class_name: cls,
+                }),
+            });
+            const data = await resp.json();
+            currentSessionId = data.session_id;
+            sessionSampleCount = 0;
+            document.getElementById('sessionId').textContent = currentSessionId;
+            document.getElementById('sessionSamples').textContent = '0 samples';
+        } catch (err) {
+            console.error("New session failed:", err);
+        }
+    }
+
+    // ============================================================
+    // Dialog
+    // ============================================================
+
+    function showDialog(title, message, onConfirm) {
+        document.getElementById('dialogTitle').textContent = title;
+        document.getElementById('dialogMessage').textContent = message;
+        document.getElementById('dialogOverlay').classList.add('visible');
+        dialogCallback = onConfirm;
+    }
+
+    window.closeDialog = function() {
+        document.getElementById('dialogOverlay').classList.remove('visible');
+        dialogCallback = null;
+    }
+
+    window.dialogConfirmAction = function() {
+        if (dialogCallback) dialogCallback();
+        closeDialog();
+    }
+
+    // ============================================================
+    // Progress Loading
+    // ============================================================
+
+    async function loadAllProgress() {
+        try {
+            const resp = await fetch('/api/progress');
+            const data = await resp.json();
+            progressCache = data;
+
+            // Ensure all classes have entries
+            for (const cls of ALPHABET_CLASSES) {
+                if (!progressCache.alphabet[cls]) {
+                    progressCache.alphabet[cls] = { total: 0, complete: false, sessions: {} };
+                }
+            }
+            for (const cls of NUMBER_CLASSES) {
+                if (!progressCache.numbers[cls]) {
+                    progressCache.numbers[cls] = { total: 0, complete: false, sessions: {} };
+                }
+            }
+
+            updateClassGrid();
+            updateOverallProgress();
+        } catch (err) {
+            console.error("Load progress failed:", err);
+        }
+    }
+
+    // ============================================================
+    // Keyboard Shortcuts
+    // ============================================================
+
+    document.addEventListener('keydown', (e) => {
+        // Ignore if dialog is open or if typing in an input
+        if (document.getElementById('dialogOverlay').classList.contains('visible')) return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        switch (e.code) {
+            case 'Space':
+                e.preventDefault();
+                toggleCapture();
+                break;
+            case 'KeyN':
+                e.preventDefault();
+                nextClass();
+                break;
+            case 'KeyP':
+                e.preventDefault();
+                prevClass();
+                break;
+            case 'KeyR':
+                e.preventDefault();
+                confirmResetClass();
+                break;
+        }
+    });
+
+    // ============================================================
+    // Init
+    // ============================================================
+
+    async function init() {
+        buildClassGrid();
+        await loadAllProgress();
+        updateCurrentClassUI();
+        updateActionButton();
+        await initMediaPipe();
+    }
+
+    init();
+
+</script>
+</body>
+</html>

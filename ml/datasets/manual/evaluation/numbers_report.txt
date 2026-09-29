@@ -1,0 +1,38 @@
+NUMBERS MODEL EVALUATION REPORT
+============================================================
+
+Classes: 9
+Parameters: 26,889
+Best epoch: 63
+Train samples: 2718
+Val samples: 906
+Test samples: 904
+
+Test Accuracy: 0.9900
+Macro Precision: 0.9904
+Macro Recall: 0.9901
+Macro F1: 0.9900
+Weighted F1: 0.9900
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           1       0.99      1.00      1.00       100
+           2       1.00      1.00      1.00       101
+           3       1.00      1.00      1.00       100
+           4       1.00      1.00      1.00       100
+           5       0.96      1.00      0.98       101
+           6       1.00      0.95      0.97       101
+           7       0.96      1.00      0.98       100
+           8       1.00      1.00      1.00       100
+           9       1.00      0.96      0.98       101
+
+    accuracy                           0.99       904
+   macro avg       0.99      0.99      0.99       904
+weighted avg       0.99      0.99      0.99       904
+
+
+Top Confusion Pairs:
+  6 -> 7 : 4
+  9 -> 5 : 4
+  6 -> 1 : 1
