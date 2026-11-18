@@ -1,0 +1,314 @@
+{
+  "run_at": "2026-11-18T04:44:31.415258+00:00",
+  "mode": "full",
+  "dataset_root": "e:\\projects\\ISL_translator\\ml\\datasets\\manual\\dynamic",
+  "classes": {
+    "HELLO": {
+      "total_files": 15,
+      "valid_sequences": 15,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": 0.10310206860303879
+    },
+    "THANK_YOU": {
+      "total_files": 15,
+      "valid_sequences": 15,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": 0.2612995754927397
+    },
+    "SORRY": {
+      "total_files": 15,
+      "valid_sequences": 15,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": 0.2840654474993547
+    },
+    "PLEASE": {
+      "total_files": 15,
+      "valid_sequences": 15,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": 0.306045176833868
+    },
+    "YES": {
+      "total_files": 15,
+      "valid_sequences": 15,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": 0.2177255282799403
+    },
+    "NO": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "HELP": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "WATER": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "FOOD_EAT": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "DRINK": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "SLEEP": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "COME": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "GO": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "STOP": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "WAIT": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "AGAIN_REPEAT": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "UNDERSTAND": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "I_ME": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "YOU": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "MOTHER": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "FATHER": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "FRIEND": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "WHAT": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "WHERE": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "HOW": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "GOOD": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "BAD": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "MORE": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "LESS_LITTLE": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    },
+    "FINISH_DONE": {
+      "total_files": 0,
+      "valid_sequences": 0,
+      "errors": [],
+      "warnings": [],
+      "avg_motion_score": null
+    }
+  },
+  "summary": {
+    "critical_errors": 30,
+    "warnings": 5,
+    "missing_classes": [],
+    "low_count_classes": [
+      "HELLO",
+      "THANK_YOU",
+      "SORRY",
+      "PLEASE",
+      "YES",
+      "NO",
+      "HELP",
+      "WATER",
+      "FOOD_EAT",
+      "DRINK",
+      "SLEEP",
+      "COME",
+      "GO",
+      "STOP",
+      "WAIT",
+      "AGAIN_REPEAT",
+      "UNDERSTAND",
+      "I_ME",
+      "YOU",
+      "MOTHER",
+      "FATHER",
+      "FRIEND",
+      "WHAT",
+      "WHERE",
+      "HOW",
+      "GOOD",
+      "BAD",
+      "MORE",
+      "LESS_LITTLE",
+      "FINISH_DONE"
+    ],
+    "ready_for_training": false,
+    "balance_ratio": 1.0
+  },
+  "duplicate_pairs": {
+    "HELLO": [
+      {
+        "file_a": "session_003.npz",
+        "file_b": "session_009.npz",
+        "cosine_similarity": 0.99563
+      },
+      {
+        "file_a": "session_003.npz",
+        "file_b": "session_012.npz",
+        "cosine_similarity": 0.995196
+      },
+      {
+        "file_a": "session_004.npz",
+        "file_b": "session_008.npz",
+        "cosine_similarity": 0.995837
+      },
+      {
+        "file_a": "session_007.npz",
+        "file_b": "session_013.npz",
+        "cosine_similarity": 0.996174
+      },
+      {
+        "file_a": "session_010.npz",
+        "file_b": "session_013.npz",
+        "cosine_similarity": 0.99517
+      }
+    ],
+    "THANK_YOU": [],
+    "SORRY": [],
+    "PLEASE": [],
+    "YES": [],
+    "NO": [],
+    "HELP": [],
+    "WATER": [],
+    "FOOD_EAT": [],
+    "DRINK": [],
+    "SLEEP": [],
+    "COME": [],
+    "GO": [],
+    "STOP": [],
+    "WAIT": [],
+    "AGAIN_REPEAT": [],
+    "UNDERSTAND": [],
+    "I_ME": [],
+    "YOU": [],
+    "MOTHER": [],
+    "FATHER": [],
+    "FRIEND": [],
+    "WHAT": [],
+    "WHERE": [],
+    "HOW": [],
+    "GOOD": [],
+    "BAD": [],
+    "MORE": [],
+    "LESS_LITTLE": [],
+    "FINISH_DONE": []
+  }
+}

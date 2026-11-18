@@ -1,0 +1,410 @@
+"""
+ISL Dynamic Dataset Collector — Flask Backend
+
+Serves the dynamic collection UI and saves validated gesture sequences
+organized by sign class. Each sequence is a full gesture recording stored
+as a .npz file containing N_frames × 126 float32 landmark vectors.
+
+This collector is SEPARATE from the static collector (app.py / port 5001).
+Do NOT modify app.py.
+"""
+
+import os
+import json
+import math
+import time
+import numpy as np
+from pathlib import Path
+from flask import Flask, render_template, request, jsonify
+
+# ============================================================
+# Paths
+# ============================================================
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DATASET_ROOT = PROJECT_ROOT / "ml" / "datasets" / "manual" / "dynamic"
+
+# ============================================================
+# Constants
+# ============================================================
+
+TOTAL_FEATURES = 126
+TARGET_PER_CLASS = 100
+MIN_FRAMES = 10
+MAX_FRAMES = 120
+
+DYNAMIC_CLASSES = [
+    "HELLO", "THANK_YOU", "SORRY", "PLEASE", "YES", "NO",
+    "HELP", "WATER", "FOOD_EAT", "DRINK", "SLEEP", "COME",
+    "GO", "STOP", "WAIT", "AGAIN_REPEAT", "UNDERSTAND", "I_ME",
+    "YOU", "MOTHER", "FATHER", "FRIEND", "WHAT", "WHERE",
+    "HOW", "GOOD", "BAD", "MORE", "LESS_LITTLE", "FINISH_DONE",
+]
+
+DYNAMIC_CLASS_SET = set(DYNAMIC_CLASSES)
+
+# ============================================================
+# Flask App
+# ============================================================
+
+app = Flask(__name__)
+
+
+# ============================================================
+# Helpers
+# ============================================================
+
+def get_class_dir(class_label: str) -> Path:
+    """Return the directory path for a given class label."""
+    return DATASET_ROOT / class_label
+
+
+def sequence_path(class_label: str, session_id: str) -> Path:
+    """Return the .npz path for a specific session."""
+    return get_class_dir(class_label) / f"{session_id}.npz"
+
+
+def count_sequences(class_label: str) -> dict:
+    """Count sequences (one .npz file = one sequence) for a class."""
+    class_dir = get_class_dir(class_label)
+    total = 0
+    sessions = {}
+
+    if class_dir.exists():
+        for npz_file in sorted(class_dir.glob("session_*.npz")):
+            sessions[npz_file.stem] = 1  # each file is one sequence
+            total += 1
+
+    return {"total": total, "sessions": sessions}
+
+
+def next_session_id(class_label: str) -> str:
+    """Compute the next session_NNN id for a class."""
+    class_dir = get_class_dir(class_label)
+    if not class_dir.exists():
+        return "session_001"
+
+    existing = sorted(class_dir.glob("session_*.npz"))
+    if not existing:
+        return "session_001"
+
+    latest_num = 0
+    for f in existing:
+        try:
+            num = int(f.stem.split("_")[1])
+            latest_num = max(latest_num, num)
+        except (IndexError, ValueError):
+            pass
+
+    return f"session_{latest_num + 1:03d}"
+
+
+def get_latest_session_id(class_label: str) -> str:
+    """Return the latest existing session id, or session_001 if none."""
+    class_dir = get_class_dir(class_label)
+    if not class_dir.exists():
+        return "session_001"
+
+    existing = sorted(class_dir.glob("session_*.npz"))
+    if not existing:
+        return "session_001"
+
+    return existing[-1].stem
+
+
+def validate_sequence(frames: list, class_label: str) -> tuple:
+    """
+    Validate a sequence of landmark frames.
+    Returns (is_valid: bool, reason: str).
+    """
+    if not isinstance(frames, list):
+        return False, "frames must be a list"
+
+    n = len(frames)
+    if n < MIN_FRAMES:
+        return False, f"too few frames: {n} (minimum {MIN_FRAMES})"
+    if n > MAX_FRAMES:
+        return False, f"too many frames: {n} (maximum {MAX_FRAMES})"
+
+    if class_label not in DYNAMIC_CLASS_SET:
+        return False, f"unknown class label: {class_label}"
+
+    arr_rows = []
+    for fi, frame in enumerate(frames):
+        if not isinstance(frame, list):
+            return False, f"frame {fi} is not a list"
+        if len(frame) != TOTAL_FEATURES:
+            return False, f"frame {fi}: expected {TOTAL_FEATURES} values, got {len(frame)}"
+        for vi, v in enumerate(frame):
+            if not math.isfinite(v):
+                return False, f"frame {fi} value {vi} is not finite"
+        arr_rows.append(frame)
+
+    arr = np.array(arr_rows, dtype=np.float32)
+
+    # Reject all-zero sequences
+    if np.all(arr == 0.0):
+        return False, "all-zero sequence"
+
+    return True, "ok"
+
+
+# ============================================================
+# Routes
+# ============================================================
+
+@app.route("/")
+def index():
+    """Serve the dynamic collector UI."""
+    return render_template("dynamic_collector.html")
+
+
+@app.route("/api/config", methods=["GET"])
+def get_config():
+    """Return collector configuration."""
+    return jsonify({
+        "dynamic_classes": DYNAMIC_CLASSES,
+        "target_per_class": TARGET_PER_CLASS,
+        "total_features": TOTAL_FEATURES,
+        "min_frames": MIN_FRAMES,
+        "max_frames": MAX_FRAMES,
+    })
+
+
+@app.route("/api/progress", methods=["GET"])
+def get_progress():
+    """Return sequence counts for all dynamic classes."""
+    progress = {}
+    for cls in DYNAMIC_CLASSES:
+        info = count_sequences(cls)
+        progress[cls] = {
+            "total": info["total"],
+            "sessions": info["sessions"],
+            "complete": info["total"] >= TARGET_PER_CLASS,
+        }
+    return jsonify(progress)
+
+
+@app.route("/api/progress/<class_label>", methods=["GET"])
+def get_class_progress(class_label):
+    """Return progress for a specific class."""
+    if class_label not in DYNAMIC_CLASS_SET:
+        return jsonify({"error": f"Unknown class: {class_label}"}), 400
+
+    info = count_sequences(class_label)
+    return jsonify({
+        "class": class_label,
+        "total": info["total"],
+        "sessions": info["sessions"],
+        "complete": info["total"] >= TARGET_PER_CLASS,
+        "target": TARGET_PER_CLASS,
+    })
+
+
+@app.route("/api/new_session", methods=["POST"])
+def new_session():
+    """
+    Allocate the next session_NNN id for a class.
+    Does NOT create the file — the file is only created when a sequence is saved.
+    """
+    data = request.json or {}
+    class_label = data.get("class_label")
+
+    if class_label not in DYNAMIC_CLASS_SET:
+        return jsonify({"error": f"Unknown class: {class_label}"}), 400
+
+    session_id = next_session_id(class_label)
+    return jsonify({
+        "class_label": class_label,
+        "session_id": session_id,
+    })
+
+
+@app.route("/api/save_sequence", methods=["POST"])
+def save_sequence():
+    """
+    Save one complete gesture sequence.
+
+    Expects JSON:
+    {
+        "class_label": "HELLO",
+        "session_id": "session_001",
+        "frames": [[126 floats] × N]
+    }
+    """
+    data = request.json or {}
+    class_label = data.get("class_label")
+    session_id = data.get("session_id")
+    frames = data.get("frames")
+
+    # Validate inputs
+    if class_label not in DYNAMIC_CLASS_SET:
+        return jsonify({"saved": False, "error": f"Unknown class: {class_label}"}), 400
+
+    if not session_id or not str(session_id).startswith("session_"):
+        return jsonify({"saved": False, "error": f"Invalid session_id: {session_id}"}), 400
+
+    is_valid, reason = validate_sequence(frames, class_label)
+    if not is_valid:
+        return jsonify({"saved": False, "valid": False, "reason": reason})
+
+    # Build numpy arrays
+    arr = np.array(frames, dtype=np.float32)
+    recorded_at = time.time()
+
+    # Save
+    npz_path = sequence_path(class_label, session_id)
+    npz_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        np.savez_compressed(
+            npz_path,
+            frames=arr,
+            label=np.array(class_label),
+            session_id=np.array(session_id),
+            recorded_at=np.array(recorded_at),
+            frame_count=np.array(len(frames)),
+        )
+    except Exception as e:
+        return jsonify({"saved": False, "valid": True, "error": f"Save failed: {e}"}), 500
+
+    info = count_sequences(class_label)
+    return jsonify({
+        "saved": True,
+        "valid": True,
+        "session_id": session_id,
+        "frame_count": len(frames),
+        "total_sequences": info["total"],
+        "complete": info["total"] >= TARGET_PER_CLASS,
+    })
+
+
+@app.route("/api/delete_session", methods=["POST"])
+def delete_session():
+    """
+    Delete a specific session .npz file.
+
+    Expects JSON:
+    {
+        "class_label": "HELLO",
+        "session_id": "session_003",
+        "confirm": true
+    }
+    """
+    data = request.json or {}
+    class_label = data.get("class_label")
+    session_id = data.get("session_id")
+    confirm = data.get("confirm", False)
+
+    if not confirm:
+        return jsonify({"error": "Confirmation required (confirm: true)"}), 400
+
+    if class_label not in DYNAMIC_CLASS_SET:
+        return jsonify({"error": f"Unknown class: {class_label}"}), 400
+
+    if not session_id or not str(session_id).startswith("session_"):
+        return jsonify({"error": f"Invalid session_id: {session_id}"}), 400
+
+    npz_path = sequence_path(class_label, session_id)
+    if not npz_path.exists():
+        return jsonify({"error": f"Session not found: {session_id}"}), 404
+
+    try:
+        npz_path.unlink()
+    except Exception as e:
+        return jsonify({"error": f"Delete failed: {e}"}), 500
+
+    info = count_sequences(class_label)
+    return jsonify({
+        "deleted": True,
+        "class_label": class_label,
+        "session_id": session_id,
+        "total_sequences": info["total"],
+    })
+
+
+@app.route("/api/validate", methods=["GET"])
+def validate_dataset():
+    """
+    Quick validation — scan dataset and return a JSON report.
+    Does not check frame-level content, only file structure and counts.
+    """
+    report = {
+        "timestamp": time.time(),
+        "classes": {},
+        "summary": {
+            "total_classes": len(DYNAMIC_CLASSES),
+            "ready_classes": 0,
+            "total_sequences": 0,
+            "errors": [],
+        },
+    }
+
+    for cls in DYNAMIC_CLASSES:
+        class_dir = get_class_dir(cls)
+        info = count_sequences(cls)
+        cls_report = {
+            "total": info["total"],
+            "complete": info["total"] >= TARGET_PER_CLASS,
+            "sessions": list(info["sessions"].keys()),
+            "issues": [],
+        }
+
+        # Check each .npz file
+        if class_dir.exists():
+            for npz_file in sorted(class_dir.glob("session_*.npz")):
+                try:
+                    d = np.load(npz_file, allow_pickle=True)
+                    if "frames" not in d:
+                        cls_report["issues"].append(f"{npz_file.name}: missing 'frames' key")
+                    else:
+                        frm = d["frames"]
+                        if frm.ndim != 2 or frm.shape[1] != TOTAL_FEATURES:
+                            cls_report["issues"].append(
+                                f"{npz_file.name}: bad shape {frm.shape}"
+                            )
+                        elif not np.all(np.isfinite(frm)):
+                            cls_report["issues"].append(
+                                f"{npz_file.name}: contains NaN/Inf"
+                            )
+                except Exception as e:
+                    cls_report["issues"].append(f"{npz_file.name}: load error — {e}")
+        else:
+            if info["total"] == 0:
+                cls_report["issues"].append("directory does not exist — no sequences collected")
+
+        report["classes"][cls] = cls_report
+        report["summary"]["total_sequences"] += info["total"]
+        if info["total"] >= TARGET_PER_CLASS:
+            report["summary"]["ready_classes"] += 1
+
+    report["summary"]["dataset_ready"] = (
+        report["summary"]["ready_classes"] == len(DYNAMIC_CLASSES)
+    )
+
+    return jsonify(report)
+
+
+# ============================================================
+# Main
+# ============================================================
+
+if __name__ == "__main__":
+    # Ensure dataset directories exist
+    for cls in DYNAMIC_CLASSES:
+        get_class_dir(cls).mkdir(parents=True, exist_ok=True)
+
+    print("=" * 60)
+    print("  ISL DYNAMIC DATASET COLLECTOR")
+    print("=" * 60)
+    print(f"  Dataset root : {DATASET_ROOT}")
+    print(f"  Classes      : {len(DYNAMIC_CLASSES)} dynamic signs")
+    print(f"  Target       : {TARGET_PER_CLASS} sequences per class")
+    print(f"  Total target : {len(DYNAMIC_CLASSES) * TARGET_PER_CLASS} sequences")
+    print(f"  Frame range  : {MIN_FRAMES}–{MAX_FRAMES} frames per sequence")
+    print("=" * 60)
+    print()
+    print("  Open http://localhost:5002 in your browser")
+    print()
+
+    app.run(host="0.0.0.0", port=5002, debug=False)

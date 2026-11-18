@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISL Dynamic Dataset Collector</title>
+    <style>
+        :root {
+            --bg: #0f0f13;
+            --surface: #1a1a24;
+            --surface2: #232336;
+            --border: #2e2e44;
+            --text: #e8e8f0;
+            --text2: #9898b0;
+            --accent: #6366f1;
+            --accent2: #818cf8;
+            --green: #22c55e;
+            --green-bg: #0d3320;
+            --red: #ef4444;
+            --red-bg: #3b1111;
+            --yellow: #eab308;
+            --yellow-bg: #3d3000;
+            --blue: #3b82f6;
+            --purple: #a855f7;
+            --purple-bg: #2d1b4e;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--purple);
+            white-space: nowrap;
+        }
+
+        .header h1 span {
+            color: var(--accent2);
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            color: var(--text2);
+        }
+
+        .header-stats .sv { color: var(--text); font-weight: 600; }
+
+        /* ===== Layout ===== */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 290px 1fr 310px;
+            height: calc(100vh - 44px);
+        }
+
+        /* ===== Left Panel ===== */
+        .left-panel {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 14px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .panel-section {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+        }
+
+        .panel-section h3 {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text2);
+            margin-bottom: 10px;
+        }
+
+        /* Sign display */
+        .sign-display {
+            text-align: center;
+            padding: 10px 0 6px;
+        }
+
+        .sign-label-big {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--purple);
+            line-height: 1.1;
+            word-break: break-word;
+        }
+
+        .sign-hint {
+            font-size: 11px;
+            color: var(--text2);
+            margin-top: 6px;
+            font-style: italic;
+            line-height: 1.4;
+        }
+
+        /* Progress bar */
+        .progress-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text2);
+            margin-bottom: 5px;
+        }
+
+        .progress-row .pv { color: var(--text); font-weight: 600; }
+
+        .progress-bar-container {
+            background: var(--bg);
+            border-radius: 4px;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--purple), var(--accent2));
+            border-radius: 4px;
+            transition: width 0.4s ease;
+            width: 0%;
+        }
+
+        .progress-bar-fill.complete {
+            background: linear-gradient(90deg, var(--green), #16a34a);
+        }
+
+        /* Session info */
+        .session-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text2);
+            margin-bottom: 6px;
+        }
+
+        .session-id-val {
+            font-family: monospace;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Buttons */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 9px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+        }
+
+        .btn + .btn { margin-top: 6px; }
+
+        .btn-primary {
+            background: var(--purple);
+            color: white;
+        }
+        .btn-primary:hover { background: #9333ea; }
+
+        .btn-secondary {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+
+        .btn-danger {
+            background: var(--red-bg);
+            border: 1px solid var(--red);
+            color: var(--red);
+        }
+        .btn-danger:hover { background: #4b1a1a; }
+
+        .btn-record {
+            background: var(--purple);
+            color: white;
+            font-size: 15px;
+            padding: 11px;
+        }
+        .btn-record:hover { background: #9333ea; }
+        .btn-record.recording {
+            background: var(--red);
+            animation: pulse-red 1s ease-in-out infinite;
+        }
+        .btn-record.recording:hover { background: #dc2626; }
+
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+            50% { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+        }
+
+        /* Keyboard shortcuts */
+        .shortcut-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text2);
+            padding: 2px 0;
+        }
+
+        .key {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 1px 5px;
+            font-family: monospace;
+            font-size: 10px;
+            color: var(--text);
+        }
+
+        /* Feedback flash */
+        .feedback {
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            transition: opacity 0.4s;
+            opacity: 0;
+            min-height: 36px;
+        }
+
+        .feedback.success {
+            background: var(--green-bg);
+            border: 1px solid var(--green);
+            color: var(--green);
+            opacity: 1;
+        }
+
+        .feedback.error {
+            background: var(--red-bg);
+            border: 1px solid var(--red);
+            color: var(--red);
+            opacity: 1;
+        }
+
+        /* ===== Center Panel ===== */
+        .center-panel {
+            display: flex;
+            flex-direction: column;
+            background: #0a0a0f;
+            position: relative;
+        }
+
+        .video-wrapper {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #webcamVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* mirror */
+            display: block;
+        }
+
+        #landmarkCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            transform: scaleX(-1); /* mirror to match video */
+        }
+
+        /* Countdown overlay */
+        #countdownOverlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.6);
+            z-index: 10;
+        }
+
+        #countdownOverlay.visible { display: flex; }
+
+        .countdown-num {
+            font-size: 100px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 0 40px rgba(168,85,247,0.8);
+            animation: countdown-pop 0.8s ease-out;
+        }
+
+        @keyframes countdown-pop {
+            0%   { transform: scale(1.4); opacity: 0; }
+            40%  { transform: scale(1.0); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.8; }
+        }
+
+        /* Frame counter overlay */
+        #frameCounter {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(0,0,0,0.75);
+            border: 1px solid var(--purple);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--purple);
+            display: none;
+            z-index: 5;
+        }
+
+        #frameCounter.visible { display: block; }
+
+        /* Recording indicator */
+        #recIndicator {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0,0,0,0.75);
+            border: 1px solid var(--red);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--red);
+            z-index: 5;
+        }
+
+        #recIndicator.visible { display: flex; }
+
+        .rec-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--red);
+            animation: blink 0.8s step-start infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0; }
+        }
+
+        /* Status bar */
+        .status-bar {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 6px 14px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text2);
+            flex-shrink: 0;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--text2);
+            flex-shrink: 0;
+        }
+
+        .status-dot.green { background: var(--green); }
+        .status-dot.red   { background: var(--red); }
+        .status-dot.yellow { background: var(--yellow); }
+
+        /* ===== Right Panel ===== */
+        .right-panel {
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .right-panel-header {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        #overallProgress {
+            font-size: 11px;
+            color: var(--accent2);
+        }
+
+        .class-grid {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            align-content: start;
+        }
+
+        .class-cell {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 7px 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .class-cell:hover {
+            border-color: var(--accent);
+        }
+
+        .class-cell.active {
+            background: var(--purple-bg);
+            border-color: var(--purple);
+        }
+
+        .class-cell.complete {
+            background: var(--green-bg);
+            border-color: var(--green);
+        }
+
+        .cell-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.1;
+            word-break: break-word;
+        }
+
+        .class-cell.active .cell-label { color: var(--purple); }
+        .class-cell.complete .cell-label { color: var(--green); }
+
+        .cell-count {
+            font-size: 10px;
+            color: var(--text2);
+        }
+
+        /* ===== Dialog ===== */
+        .dialog-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .dialog-overlay.visible { display: flex; }
+
+        .dialog {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 24px 28px;
+            max-width: 380px;
+            width: 90%;
+        }
+
+        .dialog h2 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+
+        .dialog p {
+            font-size: 13px;
+            color: var(--text2);
+            line-height: 1.5;
+            margin-bottom: 18px;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .dialog-buttons .btn {
+            width: auto;
+            padding: 8px 20px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <h1>ISL <span>Dynamic</span> Dataset Collector</h1>
+    <div class="header-stats">
+        <span>Classes: <span class="sv" id="hdrClasses">30</span></span>
+        <span>Target: <span class="sv" id="hdrTarget">100</span>/class</span>
+        <span>Collected: <span class="sv" id="hdrTotal">0</span></span>
+        <span>Complete: <span class="sv" id="hdrComplete">0</span>/30</span>
+    </div>
+</div>
+
+<!-- Main Layout -->
+<div class="main-layout">
+
+    <!-- ===== LEFT PANEL ===== -->
+    <div class="left-panel">
+
+        <!-- Sign display -->
+        <div class="panel-section">
+            <h3>Selected Sign</h3>
+            <div class="sign-display">
+                <div class="sign-label-big" id="signLabel">—</div>
+                <div class="sign-hint" id="signHint">Select a sign from the right panel</div>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="panel-section">
+            <h3>Progress</h3>
+            <div class="progress-row">
+                <span>Sequences</span>
+                <span class="pv"><span id="seqCount">0</span> / <span id="seqTarget">100</span></span>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <!-- Session -->
+        <div class="panel-section">
+            <h3>Session</h3>
+            <div class="session-row">
+                <span>Session ID</span>
+                <span class="session-id-val" id="sessionId">—</span>
+            </div>
+            <button class="btn btn-secondary" onclick="newSession()">➕ New Session</button>
+            <button class="btn btn-danger" style="margin-top:6px" onclick="confirmDeleteLast()">🗑 Delete Last Session</button>
+        </div>
+
+        <!-- Record button -->
+        <div class="panel-section">
+            <h3>Recording</h3>
+            <button class="btn btn-record" id="recordBtn" onclick="toggleRecord()">
+                ▶ Record (Space)
+            </button>
+            <div class="feedback" id="feedback" style="margin-top:8px"></div>
+        </div>
+
+        <!-- Shortcuts -->
+        <div class="panel-section">
+            <h3>Keyboard Shortcuts</h3>
+            <div class="shortcut-row">
+                <span>Record / Stop</span>
+                <span class="key">Space</span>
+            </div>
+            <div class="shortcut-row">
+                <span>Next class</span>
+                <span class="key">→</span>
+            </div>
+            <div class="shortcut-row">
+                <span>Prev class</span>
+                <span class="key">←</span>
+            </div>
+            <div class="shortcut-row">
+                <span>New session</span>
+                <span class="key">N</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===== CENTER PANEL ===== -->
+    <div class="center-panel">
+        <div class="video-wrapper" id="videoWrapper">
+            <video id="webcamVideo" autoplay playsinline muted></video>
+            <canvas id="landmarkCanvas"></canvas>
+
+            <!-- Countdown overlay -->
+            <div id="countdownOverlay">
+                <div class="countdown-num" id="countdownNum">3</div>
+            </div>
+
+            <!-- Frame counter -->
+            <div id="frameCounter" class="visible">
+                <span id="frameCountVal">0</span> frames
+            </div>
+
+            <!-- Recording indicator -->
+            <div id="recIndicator">
+                <div class="rec-dot"></div>
+                <span>REC</span>
+            </div>
+        </div>
+
+        <!-- Status bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot yellow" id="mpDot"></div>
+                <span>MediaPipe: <span id="mpStatus">Loading…</span></span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot red" id="handDot"></div>
+                <span>Hands: <span id="handStatus">Not detected</span></span>
+            </div>
+            <div class="status-item">
+                <span>FPS: <span id="fpsDisplay">0</span></span>
+            </div>
+            <div class="status-item">
+                <span>Camera: <span id="cameraStatus">Off</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== RIGHT PANEL ===== -->
+    <div class="right-panel">
+        <div class="right-panel-header">
+            <span>Signs (30)</span>
+            <span id="overallProgress">0 complete</span>
+        </div>
+        <div class="class-grid" id="classGrid"></div>
+    </div>
+
+</div>
+
+<!-- Confirm Dialog -->
+<div class="dialog-overlay" id="dialogOverlay">
+    <div class="dialog">
+        <h2 id="dialogTitle">Confirm</h2>
+        <p id="dialogMessage"></p>
+        <div class="dialog-buttons">
+            <button class="btn btn-secondary" onclick="closeDialog()">Cancel</button>
+            <button class="btn btn-danger" onclick="dialogConfirmAction()">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- MediaPipe CDN -->
+<script type="module">
+    import {
+        FilesetResolver,
+        HandLandmarker
+    } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.js";
+
+    // ============================================================
+    // Constants
+    // ============================================================
+
+    const DYNAMIC_CLASSES = [
+        "HELLO","THANK_YOU","SORRY","PLEASE","YES","NO",
+        "HELP","WATER","FOOD_EAT","DRINK","SLEEP","COME",
+        "GO","STOP","WAIT","AGAIN_REPEAT","UNDERSTAND","I_ME",
+        "YOU","MOTHER","FATHER","FRIEND","WHAT","WHERE",
+        "HOW","GOOD","BAD","MORE","LESS_LITTLE","FINISH_DONE"
+    ];
+
+    const MOVEMENT_HINTS = {
+        HELLO:        "Open palm, wave side to side",
+        THANK_YOU:    "Flat hand from chin, forward arc",
+        SORRY:        "Fist at chest, circular motion",
+        PLEASE:       "Flat hand on chest, circular",
+        YES:          "Fist nods up-down",
+        NO:           "Hand shakes side to side",
+        HELP:         "Fist on palm, raise upward",
+        WATER:        "W-shape near mouth, downward",
+        FOOD_EAT:     "Fingers to mouth, tap twice",
+        DRINK:        "C-shape, tilt to mouth",
+        SLEEP:        "Hand near cheek, head tilt",
+        COME:         "Index out, curl inward",
+        GO:           "Flat hand push forward",
+        STOP:         "Flat hand strikes palm",
+        WAIT:         "Both palms press down",
+        AGAIN_REPEAT: "Curved hand arcs to palm",
+        UNDERSTAND:   "Index at temple, flick out",
+        I_ME:         "Index points to self",
+        YOU:          "Index points forward",
+        MOTHER:       "Thumb taps chin",
+        FATHER:       "Thumb taps forehead",
+        FRIEND:       "Index fingers interlock",
+        WHAT:         "Open palm shakes side-side",
+        WHERE:        "Index up, waggle left-right",
+        HOW:          "Both cupped hands raise up",
+        GOOD:         "Flat hand near lips, forward arc",
+        BAD:          "Flat hand near mouth, flick down",
+        MORE:         "Both O-shapes tap together",
+        LESS_LITTLE:  "Thumb-index pinch inward",
+        FINISH_DONE:  "Both palms flick outward-down",
+    };
+
+    const TARGET_PER_CLASS = 100;
+    const MAX_FRAMES = 60;        // auto-stop after this many frames
+    const CAPTURE_FPS = 20;       // target recording fps
+    const CAPTURE_INTERVAL_MS = 1000 / CAPTURE_FPS;
+
+    const NUM_LANDMARKS_PER_HAND = 21;
+    const FEATURES_PER_HAND = 63;   // 21 × 3
+    const TOTAL_FEATURES = 126;     // 63 × 2 (left + right)
+    const EPSILON = 1e-6;
+
+    // ============================================================
+    // State
+    // ============================================================
+
+    let handLandmarker = null;
+    let mpReady = false;
+    let cameraStarted = false;
+
+    let currentClassIndex = 0;
+    let currentSessionId = "session_001";
+    let progressCache = {};   // { [label]: { total, complete, sessions } }
+
+    // Recording state
+    let isCountingDown = false;
+    let isRecording = false;
+    let recordedFrames = [];
+    let lastCaptureTime = 0;
+
+    // FPS tracking
+    let fpsFrameCount = 0;
+    let fpsLastTime = performance.now();
+
+    let dialogCallback = null;
+
+    // ============================================================
+    // Landmark Normalization — EXACT PORT of landmarkProcessor.js
+    // ============================================================
+
+    function normalizeHandLandmarks(landmarks) {
+        if (!landmarks || landmarks.length !== NUM_LANDMARKS_PER_HAND) {
+            return new Array(FEATURES_PER_HAND).fill(0);
+        }
+
+        const wrist     = landmarks[0];
+        const middleMCP = landmarks[9];
+
+        const dx = middleMCP.x - wrist.x;
+        const dy = middleMCP.y - wrist.y;
+        const dz = middleMCP.z - wrist.z;
+        let scale = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (scale < EPSILON) {
+            scale = 1.0;
+        }
+
+        const normalized = new Float32Array(FEATURES_PER_HAND);
+        let idx = 0;
+
+        for (let i = 0; i < NUM_LANDMARKS_PER_HAND; i++) {
+            const lm = landmarks[i];
+            normalized[idx++] = (lm.x - wrist.x) / scale;
+            normalized[idx++] = (lm.y - wrist.y) / scale;
+            normalized[idx++] = (lm.z - wrist.z) / scale;
+        }
+
+        return Array.from(normalized);
+    }
+
+    function processLandmarks(results) {
+        const featureVector = new Float32Array(TOTAL_FEATURES);
+        featureVector.fill(0);
+
+        if (!results || !results.landmarks || results.landmarks.length === 0) {
+            return null;
+        }
+
+        let leftHandLandmarks  = null;
+        let rightHandLandmarks = null;
+
+        for (let i = 0; i < results.landmarks.length; i++) {
+            const handedness = results.handednesses[i][0].categoryName;
+            if (handedness === 'Left'  && !leftHandLandmarks)  leftHandLandmarks  = results.landmarks[i];
+            if (handedness === 'Right' && !rightHandLandmarks) rightHandLandmarks = results.landmarks[i];
+        }
+
+        if (leftHandLandmarks) {
+            featureVector.set(normalizeHandLandmarks(leftHandLandmarks), 0);
+        }
+        if (rightHandLandmarks) {
+            featureVector.set(normalizeHandLandmarks(rightHandLandmarks), FEATURES_PER_HAND);
+        }
+
+        const arr = Array.from(featureVector);
+        if (arr.every(v => v === 0)) return null;
+        if (!arr.every(v => Number.isFinite(v))) return null;
+        return arr;
+    }
+
+    // ============================================================
+    // MediaPipe Init
+    // ============================================================
+
+    async function initMediaPipe() {
+        setMPStatus('Loading…', 'yellow');
+        try {
+            const vision = await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+            );
+
+            let delegate = "GPU";
+            try {
+                handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+                        delegate: "GPU"
+                    },
+                    runningMode: "VIDEO",
+                    numHands: 2,
+                    minHandDetectionConfidence: 0.5,
+                    minHandPresenceConfidence: 0.5,
+                    minTrackingConfidence: 0.5,
+                });
+            } catch (e) {
+                console.warn("GPU failed, falling back to CPU:", e);
+                delegate = "CPU";
+                handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+                        delegate: "CPU"
+                    },
+                    runningMode: "VIDEO",
+                    numHands: 2,
+                    minHandDetectionConfidence: 0.5,
+                    minHandPresenceConfidence: 0.5,
+                    minTrackingConfidence: 0.5,
+                });
+            }
+
+            mpReady = true;
+            setMPStatus(`Ready (${delegate})`, 'green');
+            document.getElementById('mpDot').className = 'status-dot green';
+
+            // Auto-start camera
+            await startCamera();
+
+        } catch (err) {
+            console.error("MediaPipe init failed:", err);
+            setMPStatus('Failed', 'red');
+            document.getElementById('mpDot').className = 'status-dot red';
+        }
+    }
+
+    function setMPStatus(text, color) {
+        document.getElementById('mpStatus').textContent = text;
+        const colors = { green: 'var(--green)', red: 'var(--red)', yellow: 'var(--yellow)' };
+        document.getElementById('mpStatus').style.color = colors[color] || '';
+    }
+
+    // ============================================================
+    // Camera
+    // ============================================================
+
+    async function startCamera() {
+        const video = document.getElementById('webcamVideo');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
+            });
+            video.srcObject = stream;
+            await video.play();
+
+            cameraStarted = true;
+            document.getElementById('cameraStatus').textContent = 'Active';
+
+            const canvas = document.getElementById('landmarkCanvas');
+            canvas.width  = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            startDetectionLoop();
+        } catch (err) {
+            console.error("Camera error:", err);
+            document.getElementById('cameraStatus').textContent = 'Error';
+        }
+    }
+
+    // ============================================================
+    // Detection Loop
+    // ============================================================
+
+    const HAND_CONNECTIONS = [
+        [0,1],[1,2],[2,3],[3,4],
+        [0,5],[5,6],[6,7],[7,8],
+        [0,9],[9,10],[10,11],[11,12],
+        [0,13],[13,14],[14,15],[15,16],
+        [0,17],[17,18],[18,19],[19,20],
+        [5,9],[9,13],[13,17]
+    ];
+
+    function drawLandmarks(ctx, results, w, h) {
+        if (!results.landmarks) return;
+
+        for (let hi = 0; hi < results.landmarks.length; hi++) {
+            const lms       = results.landmarks[hi];
+            const handedness = results.handednesses[hi][0].categoryName;
+            const color      = handedness === 'Left' ? '#00ff88' : '#ff6644';
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth   = 2;
+            for (const [s, e] of HAND_CONNECTIONS) {
+                ctx.beginPath();
+                ctx.moveTo(lms[s].x * w, lms[s].y * h);
+                ctx.lineTo(lms[e].x * w, lms[e].y * h);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = color;
+            for (const lm of lms) {
+                ctx.beginPath();
+                ctx.arc(lm.x * w, lm.y * h, 3, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+    }
+
+    function startDetectionLoop() {
+        const video  = document.getElementById('webcamVideo');
+        const canvas = document.getElementById('landmarkCanvas');
+        const ctx    = canvas.getContext('2d');
+
+        function loop() {
+            if (!cameraStarted || !mpReady || !handLandmarker) {
+                requestAnimationFrame(loop);
+                return;
+            }
+
+            if (video.readyState >= 2 && video.videoWidth > 0) {
+                if (canvas.width !== video.videoWidth) {
+                    canvas.width  = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                }
+
+                const nowMs  = performance.now();
+                const results = handLandmarker.detectForVideo(video, nowMs);
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawLandmarks(ctx, results, canvas.width, canvas.height);
+
+                const handCount = results.landmarks ? results.landmarks.length : 0;
+                document.getElementById('handStatus').textContent =
+                    handCount > 0 ? `${handCount} detected` : 'Not detected';
+                document.getElementById('handDot').className =
+                    'status-dot ' + (handCount > 0 ? 'green' : 'red');
+
+                // Capture frame if recording
+                if (isRecording && handCount > 0) {
+                    if (nowMs - lastCaptureTime >= CAPTURE_INTERVAL_MS) {
+                        lastCaptureTime = nowMs;
+                        const features = processLandmarks(results);
+                        if (features) {
+                            recordedFrames.push(features);
+                            document.getElementById('frameCountVal').textContent = recordedFrames.length;
+
+                            if (recordedFrames.length >= MAX_FRAMES) {
+                                stopRecording();
+                            }
+                        }
+                    }
+                }
+
+                // FPS
+                fpsFrameCount++;
+                if (nowMs - fpsLastTime >= 1000) {
+                    document.getElementById('fpsDisplay').textContent =
+                        Math.round(fpsFrameCount * 1000 / (nowMs - fpsLastTime));
+                    fpsFrameCount = 0;
+                    fpsLastTime   = nowMs;
+                }
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
+    }
+
+    // ============================================================
+    // Recording Workflow
+    // ============================================================
+
+    window.toggleRecord = function() {
+        if (isCountingDown) return;
+
+        if (isRecording) {
+            stopRecording();
+        } else {
+            startCountdown();
+        }
+    };
+
+    function startCountdown() {
+        if (!cameraStarted || !mpReady) {
+            showFeedback("Camera / MediaPipe not ready", false);
+            return;
+        }
+        if (currentClassIndex < 0) {
+            showFeedback("Select a sign first", false);
+            return;
+        }
+
+        isCountingDown = true;
+        recordedFrames = [];
+
+        const overlay = document.getElementById('countdownOverlay');
+        const numEl   = document.getElementById('countdownNum');
+        overlay.classList.add('visible');
+
+        let count = 3;
+        numEl.textContent = count;
+        // Restart animation
+        numEl.style.animation = 'none';
+        void numEl.offsetHeight;
+        numEl.style.animation = '';
+
+        const tick = setInterval(() => {
+            count--;
+            if (count <= 0) {
+                clearInterval(tick);
+                overlay.classList.remove('visible');
+                isCountingDown = false;
+                beginRecording();
+            } else {
+                numEl.textContent = count;
+                numEl.style.animation = 'none';
+                void numEl.offsetHeight;
+                numEl.style.animation = '';
+            }
+        }, 900);
+    }
+
+    function beginRecording() {
+        isRecording   = true;
+        recordedFrames = [];
+        lastCaptureTime = performance.now();
+
+        document.getElementById('recIndicator').classList.add('visible');
+        document.getElementById('frameCounter').classList.add('visible');
+        document.getElementById('frameCountVal').textContent = '0';
+
+        const btn = document.getElementById('recordBtn');
+        btn.classList.add('recording');
+        btn.textContent = '⏹ Stop (Space)';
+    }
+
+    async function stopRecording() {
+        if (!isRecording) return;
+        isRecording = false;
+
+        document.getElementById('recIndicator').classList.remove('visible');
+        const btn = document.getElementById('recordBtn');
+        btn.classList.remove('recording');
+        btn.textContent = '▶ Record (Space)';
+
+        const frames = recordedFrames.slice();
+        recordedFrames = [];
+
+        if (frames.length < 10) {
+            showFeedback(`Too few frames (${frames.length} < 10). Try again.`, false);
+            return;
+        }
+
+        await saveSequence(frames);
+    }
+
+    async function saveSequence(frames) {
+        const cls = DYNAMIC_CLASSES[currentClassIndex];
+
+        try {
+            const resp = await fetch('/api/save_sequence', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    class_label: cls,
+                    session_id:  currentSessionId,
+                    frames:      frames,
+                }),
+            });
+
+            const data = await resp.json();
+
+            if (data.saved) {
+                showFeedback(`✓ Saved! ${frames.length} frames → ${currentSessionId}`, true);
+                // Advance session id automatically for next recording
+                const nextSid = bumpSessionId(currentSessionId);
+                currentSessionId = nextSid;
+                document.getElementById('sessionId').textContent = currentSessionId;
+
+                // Refresh progress
+                await loadClassProgress(cls);
+                await loadAllProgress();
+            } else {
+                showFeedback(`✗ ${data.reason || data.error || 'Save failed'}`, false);
+            }
+        } catch (err) {
+            console.error("Save sequence error:", err);
+            showFeedback("✗ Network error saving sequence", false);
+        }
+    }
+
+    function bumpSessionId(sid) {
+        const parts = sid.split('_');
+        const num   = parseInt(parts[1] || '0', 10);
+        return `session_${String(num + 1).padStart(3, '0')}`;
+    }
+
+    // ============================================================
+    // Session Management
+    // ============================================================
+
+    window.newSession = async function() {
+        const cls = DYNAMIC_CLASSES[currentClassIndex];
+        try {
+            const resp = await fetch('/api/new_session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ class_label: cls }),
+            });
+            const data = await resp.json();
+            currentSessionId = data.session_id;
+            document.getElementById('sessionId').textContent = currentSessionId;
+            showFeedback(`New session: ${currentSessionId}`, true);
+        } catch (err) {
+            console.error("New session error:", err);
+        }
+    };
+
+    window.confirmDeleteLast = function() {
+        const cls = DYNAMIC_CLASSES[currentClassIndex];
+        const info = progressCache[cls];
+        if (!info || info.total === 0) {
+            showFeedback("No sequences to delete", false);
+            return;
+        }
+
+        // Find the latest session
+        const sessions = Object.keys(info.sessions || {}).sort();
+        const lastSid  = sessions[sessions.length - 1];
+        if (!lastSid) { showFeedback("No session found", false); return; }
+
+        showDialog(
+            `Delete ${lastSid}?`,
+            `Delete sequence "${lastSid}" for class "${cls}"? This cannot be undone.`,
+            async () => {
+                try {
+                    const resp = await fetch('/api/delete_session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ class_label: cls, session_id: lastSid, confirm: true }),
+                    });
+                    const data = await resp.json();
+                    if (data.deleted) {
+                        showFeedback(`Deleted ${lastSid}`, true);
+                        await loadClassProgress(cls);
+                        await loadAllProgress();
+                    } else {
+                        showFeedback(`Delete failed: ${data.error}`, false);
+                    }
+                } catch (err) {
+                    console.error("Delete error:", err);
+                }
+            }
+        );
+    };
+
+    // ============================================================
+    // Progress
+    // ============================================================
+
+    async function loadAllProgress() {
+        try {
+            const resp = await fetch('/api/progress');
+            progressCache = await resp.json();
+            updateClassGrid();
+            updateHeaderStats();
+        } catch (err) {
+            console.error("Load progress failed:", err);
+        }
+    }
+
+    async function loadClassProgress(cls) {
+        try {
+            const resp = await fetch(`/api/progress/${cls}`);
+            const data = await resp.json();
+            progressCache[cls] = data;
+            updateClassGrid();
+            updateLeftProgress(cls);
+        } catch (err) {
+            console.error("Load class progress failed:", err);
+        }
+    }
+
+    function updateLeftProgress(cls) {
+        const info  = progressCache[cls] || { total: 0, complete: false };
+        const total = info.total;
+        const pct   = Math.min(100, (total / TARGET_PER_CLASS) * 100);
+
+        document.getElementById('seqCount').textContent = total;
+        const fill = document.getElementById('progressFill');
+        fill.style.width = pct + '%';
+        fill.classList.toggle('complete', info.complete);
+    }
+
+    function updateClassGrid() {
+        for (let i = 0; i < DYNAMIC_CLASSES.length; i++) {
+            const cls    = DYNAMIC_CLASSES[i];
+            const cell   = document.getElementById(`cell-${cls}`);
+            const countEl = document.getElementById(`cnt-${cls}`);
+            if (!cell || !countEl) continue;
+
+            const info  = progressCache[cls] || { total: 0, complete: false };
+            countEl.textContent = `${info.total}/${TARGET_PER_CLASS}`;
+
+            cell.classList.toggle('active',   i === currentClassIndex);
+            cell.classList.toggle('complete', info.complete && i !== currentClassIndex);
+        }
+    }
+
+    function updateHeaderStats() {
+        let total    = 0;
+        let complete = 0;
+        for (const cls of DYNAMIC_CLASSES) {
+            const info = progressCache[cls] || { total: 0 };
+            total += info.total;
+            if (info.complete) complete++;
+        }
+        document.getElementById('hdrTotal').textContent    = total;
+        document.getElementById('hdrComplete').textContent = complete;
+        document.getElementById('overallProgress').textContent = `${complete} complete`;
+    }
+
+    // ============================================================
+    // Class Selection
+    // ============================================================
+
+    function selectClass(index) {
+        currentClassIndex = index;
+        const cls = DYNAMIC_CLASSES[index];
+
+        document.getElementById('signLabel').textContent = cls.replace(/_/g, ' ');
+        document.getElementById('signHint').textContent  = MOVEMENT_HINTS[cls] || '';
+
+        // Reset session for new class
+        const info = progressCache[cls] || {};
+        const sessions = Object.keys(info.sessions || {}).sort();
+        currentSessionId = sessions.length > 0 ? bumpSessionId(sessions[sessions.length - 1]) : 'session_001';
+        document.getElementById('sessionId').textContent = currentSessionId;
+
+        updateLeftProgress(cls);
+        updateClassGrid();
+    }
+
+    // ============================================================
+    // Grid Builder
+    // ============================================================
+
+    function buildClassGrid() {
+        const grid = document.getElementById('classGrid');
+        grid.innerHTML = '';
+
+        for (let i = 0; i < DYNAMIC_CLASSES.length; i++) {
+            const cls  = DYNAMIC_CLASSES[i];
+            const cell = document.createElement('div');
+            cell.className = 'class-cell';
+            cell.id        = `cell-${cls}`;
+            cell.innerHTML = `
+                <div class="cell-label">${cls.replace(/_/g, '_<wbr>')}</div>
+                <div class="cell-count" id="cnt-${cls}">0/${TARGET_PER_CLASS}</div>
+            `;
+            cell.addEventListener('click', () => selectClass(i));
+            grid.appendChild(cell);
+        }
+    }
+
+    // ============================================================
+    // Feedback
+    // ============================================================
+
+    let feedbackTimer = null;
+
+    function showFeedback(msg, success) {
+        const el = document.getElementById('feedback');
+        el.textContent = msg;
+        el.className   = 'feedback ' + (success ? 'success' : 'error');
+
+        if (feedbackTimer) clearTimeout(feedbackTimer);
+        feedbackTimer = setTimeout(() => {
+            el.className = 'feedback';
+        }, 3000);
+    }
+
+    // ============================================================
+    // Dialog
+    // ============================================================
+
+    function showDialog(title, msg, onConfirm) {
+        document.getElementById('dialogTitle').textContent   = title;
+        document.getElementById('dialogMessage').textContent = msg;
+        document.getElementById('dialogOverlay').classList.add('visible');
+        dialogCallback = onConfirm;
+    }
+
+    window.closeDialog = function() {
+        document.getElementById('dialogOverlay').classList.remove('visible');
+        dialogCallback = null;
+    };
+
+    window.dialogConfirmAction = function() {
+        if (dialogCallback) dialogCallback();
+        closeDialog();
+    };
+
+    // ============================================================
+    // Keyboard Shortcuts
+    // ============================================================
+
+    document.addEventListener('keydown', (e) => {
+        if (document.getElementById('dialogOverlay').classList.contains('visible')) return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        switch (e.code) {
+            case 'Space':
+                e.preventDefault();
+                toggleRecord();
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                if (currentClassIndex < DYNAMIC_CLASSES.length - 1) selectClass(currentClassIndex + 1);
+                break;
+            case 'ArrowLeft':
+                e.preventDefault();
+                if (currentClassIndex > 0) selectClass(currentClassIndex - 1);
+                break;
+            case 'KeyN':
+                e.preventDefault();
+                newSession();
+                break;
+        }
+    });
+
+    // ============================================================
+    // Init
+    // ============================================================
+
+    async function init() {
+        document.getElementById('hdrTarget').textContent = TARGET_PER_CLASS;
+
+        buildClassGrid();
+        await loadAllProgress();
+
+        // Select first class
+        selectClass(0);
+
+        await initMediaPipe();
+    }
+
+    init();
+</script>
+
+</body>
+</html>
